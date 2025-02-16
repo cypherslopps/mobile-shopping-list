@@ -74,7 +74,7 @@ export const Button: React.FC<ButtonProps> = ({
 
     const getTextColor = () => {
         if (disabled) {
-            return isDark ? zincColors[500] : zincColors[400]
+            return isDark ? zincColors[700] : zincColors[400]
         }
 
         switch (variant) {

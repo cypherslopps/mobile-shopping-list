@@ -2,22 +2,23 @@ import * as React from "react";
 
 import {
     Text,
-    TextInput,
-    Button,
-    View,
-    TextInputProps
+    View
 } from "react-native";
+import TextInput from "@/components/ui/TextInput";
 import {
     useSignUp
 } from "@clerk/clerk-expo";
 import {
+    Link,
     useRouter
 } from "expo-router";
 import { ThemedText } from "@/components/ThemedText";
+import useForm from "@/hooks/useForm";
+import Button from "@/components/ui/Button";
+import { BodyScrollView } from "@/components/ui/BodyScrollView";
+import { appleBlue } from "@/constants/Colors";
 
-type FormName = "email" | "password";
-
-const Signup = () => {
+const SignupScreen = () => {
     const { 
         isLoaded,
         signUp,
@@ -25,38 +26,22 @@ const Signup = () => {
     } = useSignUp();
     const router = useRouter();
 
-    const [formData, setFormData] = React.useState({
+    const {formData, handleInput} = useForm({
         email: "",
         password: ""
     });
+    const [isLoading, setIsLoading] = React.useState(false);
     const [code, setCode] = React.useState("");
     const [pendingVerification, setPendingVerification] = React.useState(false);
-
-    // Handle Input's 
-    const handleInput = (formName: string) => {
-        return (value: any) => {
-
-            if (formName === "email") {
-                // Set Email Value
-                setFormData(prev => ({
-                    ...prev,
-                    email: value
-                }))
-            } else if (formName === "password") {
-                // Set Password Value
-                setFormData(prev => ({
-                    ...prev,
-                    password: value
-                }))
-            }
-        }
-    }
+    const isValid = Object.values(formData).every(val => val !== "");
 
     // Handle Submission of sign-up form
     const onSignUpPress = async () => {
         if (!isLoaded) return;
 
         try {
+            setIsLoading(true);
+
             await signUp.create({
                 emailAddress: formData.email,
                 password: formData.password
@@ -69,6 +54,8 @@ const Signup = () => {
             setPendingVerification(true);
         } catch (err) {
             console.error(JSON.stringify(err, null, 2));
+        } finally {
+            setIsLoading(false);
         }
     }
 
@@ -77,6 +64,8 @@ const Signup = () => {
         if (!isLoaded) return;
 
         try {
+            setIsLoading(true);
+
             // Verify code
             const signUpAttempt = await signUp.attemptEmailAddressVerification({ code });
 
@@ -89,54 +78,85 @@ const Signup = () => {
             }
         } catch (err) {
             console.log(JSON.stringify(err, null, 2));
+        } finally {
+            setIsLoading(true);
         }
     } 
 
     if (pendingVerification) {
-        return <>
-            <Text>Verify your email</Text>
-            <TextInput 
-                value={code}
-                placeholder="Enter your verification code"
-                onChangeText={code => setCode(code)}
-                style={{
-                    backgroundColor: "white"
+        return <BodyScrollView
+                contentContainerStyle={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 10
                 }}
-            />
-            <Button
-                title="Verify"
-                onPress={onVerifyPress} 
-            />
-        </>
+            >
+                <Text>Verify your email</Text>
+                <TextInput 
+                    value={code}
+                    placeholder="Enter your verification code"
+                    onChangeText={code => setCode(code)}
+                    keyboardType="phone-pad"
+                />
+                <Button 
+                    onPress={onVerifyPress}
+                    disabled={!isValid || isLoading}
+                    loading={isLoading}
+                >
+                    Verify
+                </Button>
+            </BodyScrollView>
     }
 
     return (
-        <View>
-            <ThemedText type="title">Sign Up</ThemedText>
+        <BodyScrollView
+            contentContainerStyle={{
+                paddingHorizontal: 16,
+                paddingVertical: 10
+            }}
+        >
+
             <TextInput 
-                autoCapitalize="none"
+                label="Email" 
+                placeholder="Enter email" 
                 value={formData.email}
-                placeholder="Enter email"
+                autoCapitalize="none"
+                keyboardType="email-address"
                 onChangeText={handleInput("email")}
-                style={{
-                    backgroundColor: "white"
-                }}
             />
+
             <TextInput 
+                label="Password" 
                 autoCapitalize="none"
                 value={formData.password}
                 placeholder="Enter Password"
+                secureTextEntry={true}
                 onChangeText={handleInput("password")}
-                style={{
-                    backgroundColor: "white"
-                }}
             />
+            
             <Button 
-                title="Submit"
                 onPress={onSignUpPress}
-            />
-        </View>
+                disabled={!isValid || isLoading}
+                loading={isLoading}
+            >
+                Sign up
+            </Button>
+
+            <View style={{ marginTop: 26, flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                <ThemedText>Already have an account?</ThemedText>
+                <Link
+                    href="/(auth)"
+                    style={{
+                        color: appleBlue,
+                        textAlign: "right",
+                        textDecorationLine: "underline",
+                        fontSize: 15.5
+                    }}
+                >
+                    Sign in
+                </Link>
+            </View>
+        </BodyScrollView>
     )
 }
 
-export default Signup;
+export default SignupScreen;
